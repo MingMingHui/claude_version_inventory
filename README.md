@@ -53,3 +53,12 @@ A Flask web app for tracking inventory and calculating monthly earnings splits b
 | GET | `/api/dashboard` | Summary stats for the latest month |
 | GET | `/api/summary/<month>` | Partner earnings breakdown for a month |
 | GET | `/api/summary/months` | List all months that have sales data |
+
+### For Developer 
+
+```bash 
+# To upgrade all the dependencies 
+$ pip list --outdated --format=json | ConvertFrom-Json | ForEach-Object {
+    pip install --upgrade $_.name
+}
+```

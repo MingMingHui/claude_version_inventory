@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date
 import os
 from flask import render_template
-from sqlalchemy import func
+from sqlalchemy import func, case
 from dotenv import load_dotenv
 
 app = Flask(__name__, template_folder='backend/templates')
@@ -299,7 +299,7 @@ def dashboard():
     stock_stats = db.session.query(
         func.count(StockItem.id).label('total'),
         func.count(
-            func.case((StockItem.current_qty <= 2, 1))
+            case((StockItem.current_qty <= 2, 1))
         ).label('low_stock')
     ).first()
     
@@ -331,7 +331,8 @@ def dashboard():
 
 # ── Health Check ─────────────────────────────────────────────────────────────
 @app.route('/api/health', methods=['GET'])
-def health():  # NO     return jsonify({'status': 'ok', 'timestamp': datetime.utcnow()}), 200
+def health():  # NO     
+    return jsonify({'status': 'ok', 'timestamp': datetime.utcnow()}), 200
 # ── Seed data from Excel ──────────────────────────────────────────────────────
 
 @app.route('/api/seed', methods=['POST'])
