@@ -377,28 +377,8 @@
 
 <script>
 const API = 'http://localhost:5001/api';
-const API_BASE = 'http://localhost:5000/api';
 const API_KEY = 'dev-key-for-now';  // Change when deployed
 let stockData = [], salesData = [], rulesData = [];
-
-async function apiCall(endpoint, method = 'GET', body = null) {
-    const headers = {
-        'Content-Type': 'application/json',
-        'X-API-Key': API_KEY
-    };
-    
-    const options = {
-        method,
-        headers,
-        credentials: 'same-origin'
-    };
-    
-    if (body) options.body = JSON.stringify(body);
-    
-    const response = await fetch(`${API_BASE}${endpoint}`, options);
-    if (!response.ok) throw new Error(`API error: ${response.status}`);
-    return response.json();
-}
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 function showPage(name) {
@@ -417,7 +397,10 @@ function showPage(name) {
 
 // ── API helpers ─────────────────────────────────────────────────────────────
 async function api(path, opts={}) {
-  const r = await fetch(API + path, { headers: {'Content-Type':'application/json'}, ...opts });
+  const r = await fetch(API + path, {
+    headers: {'Content-Type': 'application/json', 'X-API-Key': API_KEY},
+    ...opts
+  });
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
