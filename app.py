@@ -6,13 +6,15 @@ import os
 from flask import render_template
 from sqlalchemy import func
 from functools import wraps
+from dotenv import load_dotenv
 
 app = Flask(__name__, template_folder='backend/templates')
 CORS(app)
+load_dotenv()
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
 if not app.config['SQLALCHEMY_DATABASE_URI']:
-    raise ValueError("ERROR: DATABASE_URL environment variable not set")
+    raise ValueError("ERROR: SQLALCHEMY_DATABASE_URI environment variable not set")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
