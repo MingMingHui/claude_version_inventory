@@ -1,0 +1,15 @@
+.env
+.env.local
+.env.*.local
+__pycache__/
+*.pyc
+.venv/
+venv/
+instance/
+.DS_Store
+data/
+sample_data/
+*.xlsx
+*.md
+*.MD
+Pipfile

@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PartnerTrack — Stock & Revenue</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3d;
+    --accent: #7c5cfc;
+    --accent2: #fc5c7d;
+    --gold: #f0b429;
+    --text: #e8e8f0;
+    --muted: #7070a0;
+    --success: #4ade80;
+    --danger: #f87171;
+    --font: 'Syne', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  /* Layout */
+  .shell { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 220px; min-height: 100vh; background: var(--surface);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column;
+    padding: 28px 0; position: fixed; top: 0; left: 0; bottom: 0; z-index: 10;
+  }
+  .logo { padding: 0 24px 32px; }
+  .logo-mark { font-size: 22px; font-weight: 800; letter-spacing: -1px; }
+  .logo-mark span { color: var(--accent); }
+  .logo-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 2px; margin-top: 2px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 24px;
+    cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 600;
+    border-left: 3px solid transparent; transition: all .2s; letter-spacing: .5px;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(124,92,252,.08); }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+  .main { margin-left: 220px; padding: 36px 40px; flex: 1; }
+
+  /* Header */
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 36px; }
+  .page-title { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+  .page-title small { display: block; font-size: 13px; font-weight: 400; color: var(--muted); margin-top: 4px; letter-spacing: 0; }
+
+  /* Cards */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 36px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px; position: relative; overflow: hidden;
+  }
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--card-color, var(--accent));
+  }
+  .card-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .card-value { font-size: 32px; font-weight: 800; margin-top: 8px; letter-spacing: -1.5px; }
+  .card-sub { font-size: 12px; color: var(--muted); margin-top: 6px; font-family: var(--mono); }
+
+  /* Table */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .table-toolbar { padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .toolbar-title { font-size: 16px; font-weight: 700; }
+  .search-box {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 8px 14px; color: var(--text); font-family: var(--font); font-size: 13px; outline: none; width: 220px;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; padding: 12px 24px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 13px 24px; font-size: 13px; border-bottom: 1px solid rgba(42,42,61,.5); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(124,92,252,.04); }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; font-family: var(--mono);
+  }
+  .badge-rule { background: rgba(124,92,252,.15); color: var(--accent); }
+  .badge-50 { background: rgba(240,180,41,.15); color: var(--gold); }
+  .badge-low { background: rgba(248,113,113,.15); color: var(--danger); }
+  .badge-ok { background: rgba(74,222,128,.12); color: var(--success); }
+  .mono { font-family: var(--mono); }
+  .rm { font-family: var(--mono); color: var(--gold); }
+
+  /* Buttons */
+  .btn {
+    padding: 9px 18px; border-radius: 10px; border: none; cursor: pointer;
+    font-family: var(--font); font-size: 13px; font-weight: 600; transition: all .15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #9a7dff; transform: translateY(-1px); }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+  .btn-danger { background: rgba(248,113,113,.15); color: var(--danger); border: 1px solid rgba(248,113,113,.3); }
+  .btn-danger:hover { background: rgba(248,113,113,.25); }
+  .btn-sm { padding: 5px 12px; font-size: 11px; border-radius: 7px; }
+  .btn-row { display: flex; gap: 8px; }
+
+  /* Modal */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 32px; width: 560px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+  .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 24px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1/-1; }
+  label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
+  input, select, textarea {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; color: var(--text); font-family: var(--font); font-size: 13px; outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  select option { background: var(--surface2); }
+  .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: 12px; padding: 4px; margin-bottom: 28px; }
+  .tab { padding: 8px 20px; border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); transition: all .2s; }
+  .tab.active { background: var(--accent); color: #fff; }
+
+  /* Section gap */
+  .section-gap { margin-bottom: 32px; }
+
+  /* Summary table */
+  .summary-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .partner-totals { display: flex; gap: 16px; }
+  .partner-chip { padding: 8px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; }
+  .chip-al { background: rgba(124,92,252,.15); color: var(--accent); }
+  .chip-kali { background: rgba(252,92,125,.15); color: var(--accent2); }
+
+  /* Loading */
+  .loading { text-align: center; padding: 60px; color: var(--muted); font-size: 14px; }
+  .pulse { animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+
+  /* Alerts */
+  .alert { padding: 14px 18px; border-radius: 12px; font-size: 13px; margin-bottom: 20px; }
+  .alert-warn { background: rgba(240,180,41,.1); border: 1px solid rgba(240,180,41,.3); color: var(--gold); }
+
+  /* Month picker */
+  .month-selector {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .month-selector select { width: auto; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Pages */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-icon { font-size: 42px; margin-bottom: 12px; }
+
+  @media (max-width: 768px) {
+    .sidebar { width: 60px; }
+    .nav-item span { display: none; }
+    .logo-sub, .logo-mark { display: none; }
+    .main { margin-left: 60px; padding: 20px; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">Partner<span>Track</span></div>
+    <div class="logo-sub">STOCK & REVENUE</div>
+  </div>
+  <div class="nav-item active" onclick="showPage('dashboard')">
+    <span class="nav-icon">⬡</span><span>Dashboard</span>
+  </div>
+  <div class="nav-item" onclick="showPage('stock')">
+    <span class="nav-icon">📦</span><span>Stock Master</span>
+  </div>
+  <div class="nav-item" onclick="showPage('sales')">
+    <span class="nav-icon">🧾</span><span>Sales Log</span>
+  </div>
+  <div class="nav-item" onclick="showPage('rules')">
+    <span class="nav-icon">⚖️</span><span>Partner Rules</span>
+  </div>
+  <div class="nav-item" onclick="showPage('summary')">
+    <span class="nav-icon">📊</span><span>Summary</span>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div class="page-title">Dashboard <small>Monthly overview — first week counts</small></div>
+      <button class="btn btn-ghost" onclick="loadDashboard()">↻ Refresh</button>
+    </div>
+    <div class="cards" id="dash-cards">
+      <div class="loading pulse">Loading…</div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <span class="toolbar-title">Recent Sales Activity</span>
+        <div class="month-selector">
+          <label style="margin:0">Month:</label>
+          <select id="dash-month" onchange="loadRecentSales()">
+            <option value="">— select —</option>
+          </select>
+        </div>
+      </div>
+      <div id="dash-sales-table"><div class="loading pulse">Select a month…</div></div>
+    </div>
+  </div>
+
+  <!-- STOCK MASTER -->
+  <div class="page" id="page-stock">
+    <div class="page-header">
+      <div class="page-title">Stock Master <small>All inventory items with purchase & selling prices</small></div>
+      <button class="btn btn-primary" onclick="openModal('stock')">+ Add Item</button>
+    </div>
+    <div class="alert alert-warn" id="low-stock-alert" style="display:none">
+      ⚠️ Some items are running low on stock. Review quantities below.
+    </div>
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <span class="toolbar-title">Inventory</span>
+        <input class="search-box" placeholder="Search item code, description…" oninput="filterStock(this.value)" />
+      </div>
+      <div id="stock-table"><div class="loading pulse">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- SALES LOG -->
+  <div class="page" id="page-sales">
+    <div class="page-header">
+      <div class="page-title">Sales Log <small>Monthly revenue tracking per item</small></div>
+      <button class="btn btn-primary" onclick="openModal('sale')">+ Record Sale</button>
+    </div>
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <span class="toolbar-title">Sales Entries</span>
+        <div class="month-selector">
+          <label style="margin:0">Month (YYYYMM):</label>
+          <input type="text" id="sales-month-filter" placeholder="e.g. 202504" style="width:130px" oninput="loadSales()"/>
+        </div>
+      </div>
+      <div id="sales-table"><div class="loading pulse">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- PARTNER RULES -->
+  <div class="page" id="page-rules">
+    <div class="page-header">
+      <div class="page-title">Partner Rules <small>Earning split rules by product category</small></div>
+      <button class="btn btn-primary" onclick="openModal('rule')">+ Add Rule</button>
+    </div>
+    <div class="table-wrap">
+      <div class="table-toolbar"><span class="toolbar-title">Rule Table</span></div>
+      <div id="rules-table"><div class="loading pulse">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="page" id="page-summary">
+    <div class="page-header">
+      <div class="page-title">Partner Summary <small>Monthly earnings breakdown for AL & KALI</small></div>
+    </div>
+    <div class="summary-header">
+      <div class="month-selector">
+        <label style="margin:0">Month:</label>
+        <select id="summary-month" onchange="loadSummary()">
+          <option value="">— select month —</option>
+        </select>
+      </div>
+      <div class="partner-totals" id="partner-totals"></div>
+    </div>
+    <div class="table-wrap">
+      <div id="summary-table"><div class="empty"><div class="empty-icon">📊</div>Select a month to view earnings</div></div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- ── Modals ── -->
+
+<!-- Stock Modal -->
+<div class="overlay" id="modal-stock">
+  <div class="modal">
+    <div class="modal-title" id="stock-modal-title">Add Stock Item</div>
+    <div class="form-grid">
+      <input type="hidden" id="stock-id">
+      <div class="form-group"><label>Item Code *</label><input id="s-code" placeholder="e.g. BAT-NS40"/></div>
+      <div class="form-group"><label>Brand</label><input id="s-brand" placeholder="Motorlite"/></div>
+      <div class="form-group full"><label>Description</label><input id="s-desc" placeholder="Full item description"/></div>
+      <div class="form-group"><label>Category *</label><input id="s-cat" placeholder="Car Battery" list="cat-list"/></div>
+      <div class="form-group"><label>Unit</label><input id="s-unit" placeholder="pcs / bottle"/></div>
+      <div class="form-group"><label>Purchase Cost (RM)</label><input id="s-cost" type="number" step="0.01"/></div>
+      <div class="form-group"><label>Selling Price (RM)</label><input id="s-price" type="number" step="0.01"/></div>
+      <div class="form-group"><label>Current Qty</label><input id="s-qty" type="number" step="1"/></div>
+      <div class="form-group"><label>Purchased Date</label><input id="s-date" type="date"/></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('stock')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStock()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sale Modal -->
+<div class="overlay" id="modal-sale">
+  <div class="modal">
+    <div class="modal-title">Record Sale</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Select Stock Item *</label>
+        <select id="sale-item" onchange="populateSaleItem()"><option value="">— choose —</option></select>
+      </div>
+      <div class="form-group"><label>Month (YYYYMM) *</label><input id="sale-month" placeholder="202504"/></div>
+      <div class="form-group"><label>Checked Date</label><input id="sale-date" type="date"/></div>
+      <div class="form-group"><label>Quantity Sold *</label><input id="sale-qty" type="number" step="1" min="1"/></div>
+      <div class="form-group"><label>Actual Selling Price (RM) *</label><input id="sale-price" type="number" step="0.01"/></div>
+      <div class="form-group"><label>Category</label><input id="sale-cat" readonly style="opacity:.6"/></div>
+      <div class="form-group"><label>Cost / unit (RM)</label><input id="sale-cost" readonly style="opacity:.6"/></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('sale')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSale()">Record Sale</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rule Modal -->
+<div class="overlay" id="modal-rule">
+  <div class="modal">
+    <div class="modal-title" id="rule-modal-title">Add Partner Rule</div>
+    <div class="form-grid">
+      <input type="hidden" id="rule-id">
+      <div class="form-group full"><label>Category *</label><input id="r-cat" placeholder="Car Battery"/></div>
+      <div class="form-group">
+        <label>Rule Type *</label>
+        <select id="r-type">
+          <option value="Fixed_Per_Unit">Fixed Per Unit</option>
+          <option value="Shared_50">Shared 50/50</option>
+          <option value="Fixed_Per_Job">Fixed Per Job</option>
+          <option value="Fixed_Per_Service">Fixed Per Service</option>
+        </select>
+      </div>
+      <div class="form-group"><label>KALI Rate (RM or ratio)</label><input id="r-kali" type="number" step="0.01"/></div>
+      <div class="form-group"><label>AL Rate (RM, ratio, or LEFTOVER)</label><input id="r-al" placeholder="LEFTOVER"/></div>
+      <div class="form-group full"><label>Notes</label><input id="r-notes"/></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('rule')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRule()">Save Rule</button>
+    </div>
+  </div>
+</div>
+
+<!-- Datalist for categories -->
+<datalist id="cat-list">
+  <option value="Car Battery"><option value="Car Tyre"><option value="Car Engine OIl-L">
+  <option value="Car Engine Oil-S"><option value="Car Brake Fluid"><option value="Battery Water">
+  <option value="Bike Coolant Fluid"><option value="Bike Battery"><option value="Used Car Tyre">
+</datalist>
+
+<script>
+const API = 'http://localhost:5001/api';
+const API_BASE = 'http://localhost:5000/api';
+const API_KEY = 'dev-key-for-now';  // Change when deployed
+let stockData = [], salesData = [], rulesData = [];
+
+async function apiCall(endpoint, method = 'GET', body = null) {
+    const headers = {
+        'Content-Type': 'application/json',
+        'X-API-Key': API_KEY
+    };
+    
+    const options = {
+        method,
+        headers,
+        credentials: 'same-origin'
+    };
+    
+    if (body) options.body = JSON.stringify(body);
+    
+    const response = await fetch(`${API_BASE}${endpoint}`, options);
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    return response.json();
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item')[
+    ['dashboard','stock','sales','rules','summary'].indexOf(name)
+  ].classList.add('active');
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'stock')     loadStock();
+  if (name === 'sales')     loadSales();
+  if (name === 'rules')     loadRules();
+  if (name === 'summary')   initSummary();
+}
+
+// ── API helpers ─────────────────────────────────────────────────────────────
+async function api(path, opts={}) {
+  const r = await fetch(API + path, { headers: {'Content-Type':'application/json'}, ...opts });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ── Dashboard ───────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const d = await api('/dashboard');
+    document.getElementById('dash-cards').innerHTML = `
+      <div class="card" style="--card-color:#7c5cfc">
+        <div class="card-label">Stock Items</div>
+        <div class="card-value">${d.total_stock_items}</div>
+        <div class="card-sub">total products tracked</div>
+      </div>
+      <div class="card" style="--card-color:#f87171">
+        <div class="card-label">Low Stock</div>
+        <div class="card-value" style="color:var(--danger)">${d.low_stock_count}</div>
+        <div class="card-sub">items ≤ 2 qty</div>
+      </div>
+      <div class="card" style="--card-color:#7c5cfc">
+        <div class="card-label">AL Earnings</div>
+        <div class="card-value rm">RM ${d.al_earnings.toFixed(2)}</div>
+        <div class="card-sub">${d.recent_month || '—'}</div>
+      </div>
+      <div class="card" style="--card-color:#fc5c7d">
+        <div class="card-label">KALI Earnings</div>
+        <div class="card-value" style="color:var(--accent2)">RM ${d.kali_earnings.toFixed(2)}</div>
+        <div class="card-sub">${d.recent_month || '—'}</div>
+      </div>`;
+    const months = await api('/summary/months');
+    const sel = document.getElementById('dash-month');
+    sel.innerHTML = '<option value="">— select —</option>' +
+      months.sort((a,b)=>b-a).map(m => `<option value="${m}">${fmt_month(m)}</option>`).join('');
+    if (months.length) { sel.value = months.sort((a,b)=>b-a)[0]; loadRecentSales(); }
+  } catch(e) { showError('dash-cards', e); }
+}
+
+async function loadRecentSales() {
+  const m = document.getElementById('dash-month').value;
+  if (!m) return;
+  const logs = await api('/sales?month_year=' + m);
+  const el = document.getElementById('dash-sales-table');
+  if (!logs.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🧾</div>No sales for this month</div>'; return; }
+  el.innerHTML = salesTableHTML(logs.slice(0,20));
+}
+
+// ── Stock ────────────────────────────────────────────────────────────────────
+async function loadStock() {
+  try {
+    stockData = await api('/stock');
+    renderStock(stockData);
+    const low = stockData.filter(i => i.current_qty <= 2).length;
+    document.getElementById('low-stock-alert').style.display = low ? 'block' : 'none';
+  } catch(e) { showError('stock-table', e); }
+}
+
+function renderStock(items) {
+  if (!items.length) { document.getElementById('stock-table').innerHTML = '<div class="empty"><div class="empty-icon">📦</div>No stock items yet</div>'; return; }
+  document.getElementById('stock-table').innerHTML = `<table>
+    <tr><th>ID</th><th>Item Code</th><th>Description</th><th>Brand</th><th>Category</th>
+    <th>Qty</th><th>Cost (RM)</th><th>Selling (RM)</th><th>Purchased</th><th>Actions</th></tr>
+    ${items.map(i => `<tr>
+      <td class="mono" style="color:var(--muted)">${i.id}</td>
+      <td><span class="badge badge-rule">${i.item_code}</span></td>
+      <td>${i.description||'—'}</td>
+      <td style="color:var(--muted)">${i.brand||'—'}</td>
+      <td>${i.category||'—'}</td>
+      <td><span class="badge ${i.current_qty <= 2 ? 'badge-low':'badge-ok'}">${i.current_qty} ${i.unit||''}</span></td>
+      <td class="rm">${i.cost_rm.toFixed(2)}</td>
+      <td class="rm" style="color:var(--success)">${i.selling_price.toFixed(2)}</td>
+      <td class="mono" style="color:var(--muted);font-size:11px">${i.purchased_date||'—'}</td>
+      <td><div class="btn-row">
+        <button class="btn btn-ghost btn-sm" onclick="editStock(${i.id})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteStock(${i.id})">Del</button>
+      </div></td>
+    </tr>`).join('')}
+  </table>`;
+}
+
+function filterStock(v) {
+  const f = stockData.filter(i =>
+    (i.item_code||'').toLowerCase().includes(v.toLowerCase()) ||
+    (i.description||'').toLowerCase().includes(v.toLowerCase()) ||
+    (i.brand||'').toLowerCase().includes(v.toLowerCase())
+  );
+  renderStock(f);
+}
+
+function editStock(id) {
+  const i = stockData.find(s => s.id === id);
+  if (!i) return;
+  document.getElementById('stock-modal-title').textContent = 'Edit Stock Item';
+  document.getElementById('stock-id').value = i.id;
+  document.getElementById('s-code').value = i.item_code;
+  document.getElementById('s-brand').value = i.brand||'';
+  document.getElementById('s-desc').value = i.description||'';
+  document.getElementById('s-cat').value = i.category||'';
+  document.getElementById('s-unit').value = i.unit||'';
+  document.getElementById('s-cost').value = i.cost_rm;
+  document.getElementById('s-price').value = i.selling_price;
+  document.getElementById('s-qty').value = i.current_qty;
+  document.getElementById('s-date').value = i.purchased_date||'';
+  openModal('stock');
+}
+
+async function saveStock() {
+  const id = document.getElementById('stock-id').value;
+  const payload = {
+    item_code: document.getElementById('s-code').value,
+    brand: document.getElementById('s-brand').value,
+    description: document.getElementById('s-desc').value,
+    category: document.getElementById('s-cat').value,
+    unit: document.getElementById('s-unit').value,
+    cost_rm: parseFloat(document.getElementById('s-cost').value)||0,
+    selling_price: parseFloat(document.getElementById('s-price').value)||0,
+    current_qty: parseFloat(document.getElementById('s-qty').value)||0,
+    purchased_date: document.getElementById('s-date').value
+  };
+  try {
+    if (id) await api('/stock/' + id, { method: 'PUT', body: JSON.stringify(payload) });
+    else    await api('/stock', { method: 'POST', body: JSON.stringify(payload) });
+    closeModal('stock');
+    loadStock();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function deleteStock(id) {
+  if (!confirm('Delete this item?')) return;
+  await api('/stock/' + id, { method: 'DELETE' });
+  loadStock();
+}
+
+// ── Sales ────────────────────────────────────────────────────────────────────
+async function loadSales() {
+  const m = document.getElementById('sales-month-filter').value;
+  const url = m ? '/sales?month_year=' + m : '/sales';
+  try {
+    salesData = await api(url);
+    document.getElementById('sales-table').innerHTML = salesData.length
+      ? salesTableHTML(salesData)
+      : '<div class="empty"><div class="empty-icon">🧾</div>No sales yet. Record a sale to get started.</div>';
+  } catch(e) { showError('sales-table', e); }
+}
+
+function salesTableHTML(logs) {
+  return `<table>
+    <tr><th>Item Code</th><th>Description</th><th>Category</th><th>Month</th>
+    <th>Qty</th><th>Sell Price</th><th>Revenue</th><th>Rule</th><th>AL Share</th><th>KALI Share</th></tr>
+    ${logs.map(l => `<tr>
+      <td><span class="badge badge-rule">${l.item_code||'—'}</span></td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.description||'—'}</td>
+      <td style="color:var(--muted);font-size:12px">${l.category||'—'}</td>
+      <td class="mono" style="color:var(--muted)">${l.month_year||'—'}</td>
+      <td>${l.quantity_sold}</td>
+      <td class="rm">${(l.actual_selling_price||0).toFixed(2)}</td>
+      <td class="rm" style="color:var(--success)">${(l.revenue_per_sales||0).toFixed(2)}</td>
+      <td><span class="badge ${l.rule_type==='Shared_50'?'badge-50':'badge-rule'}">${l.rule_type||'—'}</span></td>
+      <td class="rm" style="color:var(--accent)">${(l.al_share||0).toFixed(2)}</td>
+      <td class="rm" style="color:var(--accent2)">${(l.kali_share||0).toFixed(2)}</td>
+    </tr>`).join('')}
+  </table>`;
+}
+
+function populateSaleItem() {
+  const id = document.getElementById('sale-item').value;
+  const item = stockData.find(s => s.id == id);
+  if (item) {
+    document.getElementById('sale-cat').value = item.category||'';
+    document.getElementById('sale-cost').value = item.cost_rm;
+    document.getElementById('sale-price').value = item.selling_price;
+  }
+}
+
+async function openSaleModal() {
+  if (!stockData.length) stockData = await api('/stock');
+  const sel = document.getElementById('sale-item');
+  sel.innerHTML = '<option value="">— choose —</option>' +
+    stockData.map(i => `<option value="${i.id}">[${i.item_code}] ${i.description} (qty: ${i.current_qty})</option>`).join('');
+  // default month to current YYYYMM
+  const now = new Date();
+  document.getElementById('sale-month').value =
+    String(now.getFullYear()) + String(now.getMonth()+1).padStart(2,'0');
+  document.getElementById('sale-date').value = now.toISOString().slice(0,10);
+}
+
+async function saveSale() {
+  const itemId = document.getElementById('sale-item').value;
+  const item = stockData.find(s => s.id == itemId);
+  if (!item) { alert('Select an item'); return; }
+  const payload = {
+    stock_item_id: parseInt(itemId),
+    item_code: item.item_code,
+    description: item.description,
+    brand: item.brand,
+    category: item.category,
+    cost_rm: item.cost_rm,
+    month_year: document.getElementById('sale-month').value,
+    checked_date: document.getElementById('sale-date').value,
+    quantity_sold: parseFloat(document.getElementById('sale-qty').value)||1,
+    actual_selling_price: parseFloat(document.getElementById('sale-price').value)||0
+  };
+  try {
+    await api('/sales', { method: 'POST', body: JSON.stringify(payload) });
+    closeModal('sale');
+    loadSales();
+    loadStock();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ── Rules ────────────────────────────────────────────────────────────────────
+async function loadRules() {
+  try {
+    rulesData = await api('/rules');
+    document.getElementById('rules-table').innerHTML = rulesData.length ? `<table>
+      <tr><th>Category</th><th>Rule Type</th><th>KALI Rate</th><th>AL Rate</th><th>Notes</th><th>Actions</th></tr>
+      ${rulesData.map(r => `<tr>
+        <td><b>${r.category}</b></td>
+        <td><span class="badge ${r.rule_type==='Shared_50'?'badge-50':'badge-rule'}">${r.rule_type}</span></td>
+        <td class="rm">${r.kali_rate}</td>
+        <td class="mono" style="color:var(--gold)">${r.al_rate}</td>
+        <td style="color:var(--muted);font-size:12px">${r.notes||'—'}</td>
+        <td><div class="btn-row">
+          <button class="btn btn-ghost btn-sm" onclick="editRule(${r.id})">Edit</button>
+        </div></td>
+      </tr>`).join('')}
+    </table>` : '<div class="empty"><div class="empty-icon">⚖️</div>No rules yet.</div>';
+  } catch(e) { showError('rules-table', e); }
+}
+
+function editRule(id) {
+  const r = rulesData.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('rule-modal-title').textContent = 'Edit Partner Rule';
+  document.getElementById('rule-id').value = r.id;
+  document.getElementById('r-cat').value = r.category;
+  document.getElementById('r-type').value = r.rule_type;
+  document.getElementById('r-kali').value = r.kali_rate;
+  document.getElementById('r-al').value = r.al_rate;
+  document.getElementById('r-notes').value = r.notes||'';
+  openModal('rule');
+}
+
+async function saveRule() {
+  const id = document.getElementById('rule-id').value;
+  const payload = {
+    category: document.getElementById('r-cat').value,
+    rule_type: document.getElementById('r-type').value,
+    kali_rate: parseFloat(document.getElementById('r-kali').value)||0,
+    al_rate: document.getElementById('r-al').value||'LEFTOVER',
+    notes: document.getElementById('r-notes').value
+  };
+  try {
+    if (id) await api('/rules/' + id, { method: 'PUT', body: JSON.stringify(payload) });
+    else    await api('/rules', { method: 'POST', body: JSON.stringify(payload) });
+    closeModal('rule');
+    loadRules();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ── Summary ──────────────────────────────────────────────────────────────────
+async function initSummary() {
+  const months = await api('/summary/months');
+  const sel = document.getElementById('summary-month');
+  sel.innerHTML = '<option value="">— select month —</option>' +
+    months.sort((a,b)=>b-a).map(m => `<option value="${m}">${fmt_month(m)}</option>`).join('');
+}
+
+async function loadSummary() {
+  const m = document.getElementById('summary-month').value;
+  if (!m) return;
+  try {
+    const d = await api('/summary/' + m);
+    document.getElementById('partner-totals').innerHTML = `
+      <div class="partner-chip chip-al">AL (Pihak A): RM ${d.total_al.toFixed(2)}</div>
+      <div class="partner-chip chip-kali">KALI (Pihak B): RM ${d.total_kali.toFixed(2)}</div>`;
+    document.getElementById('summary-table').innerHTML = d.rows.length ? `<table>
+      <tr><th>Category</th><th>AL Share (RM)</th><th>KALI Share (RM)</th><th>Total (RM)</th></tr>
+      ${d.rows.map(r => `<tr>
+        <td>${r.category}</td>
+        <td class="rm" style="color:var(--accent)">${r.al_share.toFixed(2)}</td>
+        <td class="rm" style="color:var(--accent2)">${r.kali_share.toFixed(2)}</td>
+        <td class="rm" style="color:var(--gold)">${(r.al_share+r.kali_share).toFixed(2)}</td>
+      </tr>`).join('')}
+      <tr style="font-weight:700;border-top:2px solid var(--border)">
+        <td>GRAND TOTAL</td>
+        <td class="rm" style="color:var(--accent)">${d.total_al.toFixed(2)}</td>
+        <td class="rm" style="color:var(--accent2)">${d.total_kali.toFixed(2)}</td>
+        <td class="rm" style="color:var(--gold)">${(d.total_al+d.total_kali).toFixed(2)}</td>
+      </tr>
+    </table>` : '<div class="empty"><div class="empty-icon">📊</div>No sales for this month</div>';
+  } catch(e) { showError('summary-table', e); }
+}
+
+// ── Modal helpers ─────────────────────────────────────────────────────────────
+function openModal(name) {
+  if (name === 'sale') openSaleModal();
+  if (name === 'stock') { document.getElementById('stock-modal-title').textContent='Add Stock Item'; document.getElementById('stock-id').value=''; }
+  if (name === 'rule')  { document.getElementById('rule-modal-title').textContent='Add Partner Rule'; document.getElementById('rule-id').value=''; }
+  document.getElementById('modal-' + name).classList.add('open');
+}
+function closeModal(name) { document.getElementById('modal-' + name).classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e => { if (e.target===o) o.classList.remove('open'); }));
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmt_month(m) {
+  if (!m || m.length < 6) return m;
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[parseInt(m.slice(4,6))-1] + ' ' + m.slice(0,4);
+}
+function showError(el, e) {
+  document.getElementById(el).innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div>Error: ${e.message}<br><small style="color:var(--muted)">Is the backend running at ${API}?</small></div>`;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadDashboard();
+</script>
+</body>
+</html>
