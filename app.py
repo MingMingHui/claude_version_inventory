@@ -5,7 +5,6 @@ from datetime import datetime, date
 import os
 from flask import render_template
 from sqlalchemy import func
-from functools import wraps
 from dotenv import load_dotenv
 
 app = Flask(__name__, template_folder='backend/templates')
@@ -103,31 +102,12 @@ def calculate_shares(category, rule_type, kali_rate, al_rate_str, revenue, cost)
         kali_share = 0
         al_share   = 0
     return round(al_share, 2), round(kali_share, 2)
-# ── Decorators ─────────────────────────────────────────────────────────
-def require_api_key(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        api_key = request.headers.get('X-API-Key')
-        expected_key = os.getenv('API_KEY')
-        
-        if not expected_key:
-            # For local dev, warn but allow
-            if app.config.get('DEBUG'):
-                return f(*args, **kwargs)
-            return jsonify({'error': 'Server misconfigured'}), 500
-        
-        if api_key != expected_key:
-            return jsonify({'error': 'Unauthorized'}), 401
-        
-        return f(*args, **kwargs)
-    return decorated_function
 # ── Stock Master CRUD ─────────────────────────────────────────────────────────
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/api/stock', methods=['GET'])
-@require_api_key
 def get_stock():
     items = StockItem.query.all()
     return jsonify([{
@@ -140,7 +120,6 @@ def get_stock():
 
 
 @app.route('/api/stock', methods=['POST'])
-@require_api_key
 def add_stock():
     d = request.json
     item = StockItem(
@@ -157,7 +136,6 @@ def add_stock():
 
 
 @app.route('/api/stock/<int:item_id>', methods=['PUT'])
-@require_api_key
 def update_stock(item_id):
     item = StockItem.query.get_or_404(item_id)
     d = request.json
@@ -171,7 +149,6 @@ def update_stock(item_id):
 
 
 @app.route('/api/stock/<int:item_id>', methods=['DELETE'])
-@require_api_key
 def delete_stock(item_id):
     item = StockItem.query.get_or_404(item_id)
     db.session.delete(item)
@@ -182,7 +159,6 @@ def delete_stock(item_id):
 # ── Partner Rules ─────────────────────────────────────────────────────────────
 
 @app.route('/api/rules', methods=['GET'])
-@require_api_key
 def get_rules():
     rules = PartnerRule.query.all()
     return jsonify([{
@@ -192,7 +168,6 @@ def get_rules():
 
 
 @app.route('/api/rules', methods=['POST'])
-@require_api_key
 def add_rule():
     d = request.json
     rule = PartnerRule(
@@ -206,7 +181,6 @@ def add_rule():
 
 
 @app.route('/api/rules/<int:rule_id>', methods=['PUT'])
-@require_api_key
 def update_rule(rule_id):
     rule = PartnerRule.query.get_or_404(rule_id)
     d = request.json
@@ -220,7 +194,6 @@ def update_rule(rule_id):
 # ── Sales Log ─────────────────────────────────────────────────────────────────
 
 @app.route('/api/sales', methods=['GET'])
-@require_api_key
 def get_sales():
     month_year = request.args.get('month_year')
     q = SalesLog.query
@@ -239,7 +212,6 @@ def get_sales():
 
 
 @app.route('/api/sales', methods=['POST'])
-@require_api_key
 def add_sale():
     d = request.json
     rule = PartnerRule.query.filter_by(category=d.get('category')).first()
@@ -285,7 +257,6 @@ def add_sale():
 # ── Monthly Summary ───────────────────────────────────────────────────────────
 
 @app.route('/api/summary/<month_year>', methods=['GET'])
-@require_api_key
 def get_summary(month_year):
     # Aggregate at database level
     summary_rows = db.session.query(
@@ -316,7 +287,6 @@ def get_summary(month_year):
     })
 
 @app.route('/api/summary/months', methods=['GET'])
-@require_api_key
 def available_months():
     months = db.session.query(SalesLog.month_year).distinct().all()
     return jsonify([m[0] for m in months if m[0]])
@@ -324,7 +294,6 @@ def available_months():
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 @app.route('/api/dashboard', methods=['GET'])
-@require_api_key
 def dashboard():
     # Query 1: Stock stats (one query)
     stock_stats = db.session.query(
@@ -362,12 +331,10 @@ def dashboard():
 
 # ── Health Check ─────────────────────────────────────────────────────────────
 @app.route('/api/health', methods=['GET'])
-def health():  # NO @require_api_key
-    return jsonify({'status': 'ok', 'timestamp': datetime.utcnow()}), 200
+def health():  # NO     return jsonify({'status': 'ok', 'timestamp': datetime.utcnow()}), 200
 # ── Seed data from Excel ──────────────────────────────────────────────────────
 
 @app.route('/api/seed', methods=['POST'])
-@require_api_key
 def seed_from_excel():
     import pandas as pd
     f = request.files.get('file')

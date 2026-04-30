@@ -376,8 +376,7 @@
 </datalist>
 
 <script>
-const API = 'http://localhost:5001/api';
-const API_KEY = 'dev-key-for-now';  // Change when deployed
+const API = '/api';
 let stockData = [], salesData = [], rulesData = [];
 
 // ── Navigation ─────────────────────────────────────────────────────────────
@@ -398,7 +397,7 @@ function showPage(name) {
 // ── API helpers ─────────────────────────────────────────────────────────────
 async function api(path, opts={}) {
   const r = await fetch(API + path, {
-    headers: {'Content-Type': 'application/json', 'X-API-Key': API_KEY},
+    headers: {'Content-Type': 'application/json'},
     ...opts
   });
   if (!r.ok) throw new Error(await r.text());
